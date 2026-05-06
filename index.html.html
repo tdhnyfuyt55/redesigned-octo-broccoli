@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Leaf Detector" />
+  <title>Leaf Footstep Detector Mobile</title>
+  <style>
+    :root {
+      --bg: #f4f7f6;
+      --card: #ffffff;
+      --text: #10201d;
+      --muted: #65736f;
+      --line: rgba(16, 32, 29, 0.1);
+      --green: #0f766e;
+      --green-2: #14b8a6;
+      --red: #dc2626;
+      --blue: #2563eb;
+      --amber: #d97706;
+      --shadow: 0 12px 28px rgba(15, 118, 110, 0.1);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      padding: env(safe-area-inset-top) 14px calc(92px + env(safe-area-inset-bottom));
+    }
+
+    .app {
+      width: 100%;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 22px 4px 14px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 27px;
+      line-height: 1.15;
+      letter-spacing: -0.4px;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.1);
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: #94a3b8;
+      display: inline-block;
+    }
+
+    .dot.live { background: var(--green-2); box-shadow: 0 0 0 6px rgba(20, 184, 166, 0.14); }
+    .dot.warn { background: var(--amber); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin: 12px 0;
+      box-shadow: var(--shadow);
+    }
+
+    .alert {
+      display: none;
+      margin-bottom: 12px;
+      padding: 12px 13px;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .alert.show { display: block; }
+    .alert.detect { color: #064e3b; background: #d1fae5; border: 1px solid #99f6e4; }
+    .alert.info { color: #1e3a8a; background: #dbeafe; border: 1px solid #bfdbfe; }
+    .alert.err { color: #7f1d1d; background: #fee2e2; border: 1px solid #fecaca; }
+    .alert.warn { color: #7c2d12; background: #ffedd5; border: 1px solid #fed7aa; }
+
+    .meter-wrap {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      background: #ecfdf5;
+      border: 1px solid rgba(15, 118, 110, 0.13);
+      padding: 14px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 130px;
+      display: block;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f8fffd, #ecfdf5);
+    }
+
+    .freq-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .stat {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 13px 9px;
+      text-align: center;
+      min-width: 0;
+    }
+
+    .stat-n {
+      font-size: clamp(18px, 6vw, 25px);
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      white-space: nowrap;
+    }
+
+    .stat-l {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .control {
+      margin: 15px 0;
+    }
+
+    .control-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .label {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .value {
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--green);
+      min-height: 36px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      margin-top: 8px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      appearance: none;
+      border: 0;
+      border-radius: 18px;
+      padding: 14px 17px;
+      min-height: 50px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+      touch-action: manipulation;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn.primary { color: white; background: linear-gradient(135deg, var(--green), var(--green-2)); }
+    .btn.danger { color: white; background: var(--red); }
+    .btn.secondary { color: var(--text); background: #eef2f7; border: 1px solid var(--line); }
+    .btn.blue { color: white; background: var(--blue); }
+    .btn.full { width: 100%; }
+
+    .bottom-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(244, 247, 246, 0.88);
+      backdrop-filter: blur(18px);
+      border-top: 1px solid var(--line);
+      z-index: 20;
+    }
+
+    .bottom-inner {
+      max-width: 540px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .install-box {
+      display: none;
+    }
+
+    .install-box.show {
+      display: block;
+    }
+
+    .mini-list {
+      margin: 8px 0 0;
+      padding-left: 19px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .file-note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 370px) {
+      body { padding-left: 10px; padding-right: 10px; }
+      h1 { font-size: 24px; }
+      .stats { grid-template-columns: 1fr; }
+      canvas { height: 115px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="title-row">
+        <div>
+          <h1>Leaf Footstep Detector</h1>
+          <div class="subtitle">手機版腳步聲偵測器：用手機咪高峰分析低頻聲音，偵測到疑似腳步聲時播放提示音。</div>
+        </div>
+        <div class="pill" id="statusPill"><span class="dot" id="statusDot"></span><span id="statusText">未啟動</span></div>
+      </div>
+    </header>
+
+    <section class="card">
+      <div id="alertDetect" class="alert detect"></div>
+      <div id="alertInfo" class="alert info"></div>
+      <div id="alertWarn" class="alert warn"></div>
+      <div id="alertErr" class="alert err"></div>
+
+      <div class="meter-wrap">
+        <canvas id="spectrum" aria-label="聲音頻譜圖"></canvas>
+        <div class="freq-labels"><span>20Hz</span><span>100Hz</span><span>200Hz</span><span>500Hz</span><span>1kHz</span></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="stat-n" id="curDb">—</div><div class="stat-l">當前音量</div></div>
+        <div class="stat"><div class="stat-n" id="peakFreq">—</div><div class="stat-l">主頻率</div></div>
+        <div class="stat"><div class="stat-n" id="detectCount">0</div><div class="stat-l">偵測次數</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">偵測設定</h2>
+
+      <div class="control">
+        <div class="control-head"><span class="label">最低頻率</span><span class="value" id="minHzVal">40 Hz</span></div>
+        <input type="range" min="20" max="300" value="40" id="minHz" />
+      </div>
+
+      <div class="control">
+        <div class="control-head"><span class="label">最高頻率</span><span class="value" id="maxHzVal">180 Hz</span></div>
+        <input type="range" min="50" max="500" value="180" id="maxHz" />
+      </div>
+
+      <div class="control">
+        <div class="control-head"><span class="label">靈敏度</span><span class="value" id="thresholdVal">8</span></div>
+        <input type="range" min="1" max="20" value="8" id="threshold" />
+      </div>
+
+      <div class="control">
+        <div class="control-head"><span class="label">冷卻時間</span><span class="value" id="cooldownVal">2000 ms</span></div>
+        <input type="range" min="500" max="5000" step="500" value="2000" id="cooldown" />
+      </div>
+
+      <div class="hint">建議手機放近門口或地面附近。環境太嘈可提高靈敏度數值或收窄頻率範圍。</div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">手機音訊輸出</h2>
+      <div class="row">
+        <button class="btn blue" id="testSoundBtn" type="button">測試提示音</button>
+        <button class="btn secondary" id="wakeLockBtn" type="button">保持螢幕喚醒</button>
+      </div>
+      <div class="hint">
+        手機網頁通常不能直接指定某一個藍牙音箱。請先在 iPhone / Android 系統設定連接藍牙音箱，提示音就會跟隨系統音訊輸出。
+      </div>
+    </section>
+
+    <section class="card install-box" id="installBox">
+      <h2 class="section-title">安裝到手機桌面</h2>
+      <button class="btn primary full" id="installBtn" type="button">安裝 App</button>
+      <div class="hint">Android Chrome 支援直接安裝。iPhone Safari 可用「分享」→「加入主畫面」。</div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">使用注意</h2>
+      <ul class="mini-list">
+        <li>請用 HTTPS 網址開啟，否則手機瀏覽器可能禁止咪高峰權限。</li>
+        <li>iPhone Safari、Android Chrome 都支援咪高峰偵測，但背景執行能力有限。</li>
+        <li>如果鎖屏或切換 App，偵測可能會暫停；建議保持畫面開啟。</li>
+        <li>此工具只能作輔助提醒，不應用作保安、醫療或安全關鍵用途。</li>
+      </ul>
+    </section>
+  </main>
+
+  <nav class="bottom-bar" aria-label="主要操作">
+    <div class="bottom-inner">
+      <button class="btn primary" id="startBtn" type="button">開始偵測</button>
+      <button class="btn danger" id="stopBtn" type="button" disabled>停止</button>
+    </div>
+  </nav>
+
+  <script>
+    let audioCtx = null;
+    let analyser = null;
+    let micSource = null;
+    let micStream = null;
+    let rafId = null;
+    let detectCount = 0;
+    let lastAlertTime = 0;
+    let alertTimer = null;
+    let wakeLock = null;
+    let deferredInstallPrompt = null;
+
+    const els = {
+      canvas: document.getElementById('spectrum'),
+      startBtn: document.getElementById('startBtn'),
+      stopBtn: document.getElementById('stopBtn'),
+      testSoundBtn: document.getElementById('testSoundBtn'),
+      wakeLockBtn: document.getElementById('wakeLockBtn'),
+      installBox: document.getElementById('installBox'),
+      installBtn: document.getElementById('installBtn'),
+      statusDot: document.getElementById('statusDot'),
+      statusText: document.getElementById('statusText'),
+      alertDetect: document.getElementById('alertDetect'),
+      alertInfo: document.getElementById('alertInfo'),
+      alertWarn: document.getElementById('alertWarn'),
+      alertErr: document.getElementById('alertErr'),
+      curDb: document.getElementById('curDb'),
+      peakFreq: document.getElementById('peakFreq'),
+      detectCount: document.getElementById('detectCount'),
+      minHz: document.getElementById('minHz'),
+      maxHz: document.getElementById('maxHz'),
+      threshold: document.getElementById('threshold'),
+      cooldown: document.getElementById('cooldown'),
+      minHzVal: document.getElementById('minHzVal'),
+      maxHzVal: document.getElementById('maxHzVal'),
+      thresholdVal: document.getElementById('thresholdVal'),
+      cooldownVal: document.getElementById('cooldownVal')
+    };
+
+    const ctx = els.canvas.getContext('2d');
+
+    function bindRange(input, output, suffix) {
+      const update = () => output.textContent = input.value + (suffix ? ' ' + suffix : '');
+      input.addEventListener('input', update);
+      update();
+    }
+
+    bindRange(els.minHz, els.minHzVal, 'Hz');
+    bindRange(els.maxHz, els.maxHzVal, 'Hz');
+    bindRange(els.threshold, els.thresholdVal, '');
+    bindRange(els.cooldown, els.cooldownVal, 'ms');
+
+    function getSettings() {
+      let minHz = Number(els.minHz.value);
+      let maxHz = Number(els.maxHz.value);
+      if (minHz >= maxHz) {
+        maxHz = minHz + 20;
+        els.maxHz.value = Math.min(maxHz, Number(els.maxHz.max));
+        els.maxHzVal.textContent = els.maxHz.value + ' Hz';
+      }
+      return {
+        minHz: Number(els.minHz.value),
+        maxHz: Number(els.maxHz.value),
+        threshold: Number(els.threshold.value),
+        cooldown: Number(els.cooldown.value)
+      };
+    }
+
+    function setStatus(mode, text) {
+      els.statusDot.className = 'dot';
+      if (mode === 'live') els.statusDot.classList.add('live');
+      if (mode === 'warn') els.statusDot.classList.add('warn');
+      els.statusText.textContent = text;
+    }
+
+    function showMsg(type, text, duration = 2600) {
+      [els.alertDetect, els.alertInfo, els.alertWarn, els.alertErr].forEach(el => {
+        el.classList.remove('show');
+        el.textContent = '';
+      });
+      const target = type === 'detect' ? els.alertDetect : type === 'warn' ? els.alertWarn : type === 'err' ? els.alertErr : els.alertInfo;
+      target.textContent = text;
+      target.classList.add('show');
+      clearTimeout(alertTimer);
+      if (duration) {
+        alertTimer = setTimeout(() => target.classList.remove('show'), duration);
+      }
+    }
+
+    async function ensureAudioContext() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) throw new Error('此瀏覽器不支援 Web Audio API');
+      if (!audioCtx || audioCtx.state === 'closed') audioCtx = new AudioContextClass();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      return audioCtx;
+    }
+
+    async function playBeep() {
+      try {
+        const ac = await ensureAudioContext();
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ac.currentTime);
+        gain.gain.setValueAtTime(0.0001, ac.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.45, ac.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.42);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start();
+        osc.stop(ac.currentTime + 0.45);
+      } catch (error) {
+        showMsg('err', '提示音播放失敗：' + error.message, 3000);
+      }
+    }
+
+    function resizeCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = els.canvas.getBoundingClientRect();
+      els.canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+      els.canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function drawSpectrum(data, sampleRate, minHz, maxHz) {
+      const rect = els.canvas.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      const binSize = sampleRate / analyser.fftSize;
+      const minBin = Math.floor(minHz / binSize);
+      const maxBin = Math.ceil(maxHz / binSize);
+      ctx.clearRect(0, 0, width, height);
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, 'rgba(20, 184, 166, 0.92)');
+      gradient.addColorStop(1, 'rgba(15, 118, 110, 0.38)');
+
+      const visibleBins = Math.min(data.length, 120);
+      const barWidth = width / visibleBins;
+      for (let i = 0; i < visibleBins; i++) {
+        const value = data[i] / 255;
+        const barHeight = Math.max(2, value * height);
+        ctx.fillStyle = i >= minBin && i <= maxBin ? gradient : 'rgba(100, 116, 139, 0.22)';
+        ctx.fillRect(i * barWidth, height - barHeight, Math.max(1, barWidth - 1), barHeight);
+      }
+    }
+
+    function analyze() {
+      const bufferLength = analyser.frequencyBinCount;
+      const data = new Uint8Array(bufferLength);
+      analyser.getByteFrequencyData(data);
+
+      const settings = getSettings();
+      const sampleRate = audioCtx.sampleRate;
+      const binSize = sampleRate / analyser.fftSize;
+      const minBin = Math.max(0, Math.floor(settings.minHz / binSize));
+      const maxBin = Math.min(bufferLength - 1, Math.ceil(settings.maxHz / binSize));
+
+      let sum = 0;
+      let peakVal = 0;
+      let peakBin = minBin;
+      for (let i = minBin; i <= maxBin; i++) {
+        sum += data[i];
+        if (data[i] > peakVal) {
+          peakVal = data[i];
+          peakBin = i;
+        }
+      }
+
+      const avg = sum / Math.max(1, maxBin - minBin + 1);
+      const db = avg > 0 ? Math.round(20 * Math.log10(avg / 255) + 90) : 0;
+      const peakFreq = Math.round(peakBin * binSize);
+      els.curDb.textContent = db + ' dB';
+      els.peakFreq.textContent = peakFreq + ' Hz';
+
+      drawSpectrum(data, sampleRate, settings.minHz, settings.maxHz);
+
+      const now = Date.now();
+      const triggerLevel = settings.threshold * 10;
+      if (avg > triggerLevel && now - lastAlertTime > settings.cooldown) {
+        lastAlertTime = now;
+        detectCount += 1;
+        els.detectCount.textContent = String(detectCount);
+        playBeep();
+        if (navigator.vibrate) navigator.vibrate([120, 70, 120]);
+        showMsg('detect', '偵測到疑似腳步聲！已播放提示音。', 1600);
+      }
+
+      rafId = requestAnimationFrame(analyze);
+    }
+
+    async function startDetect() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showMsg('err', '此瀏覽器不支援咪高峰偵測。請使用 iPhone Safari 或 Android Chrome。', 5000);
+        return;
+      }
+
+      try {
+        resizeCanvas();
+        const ac = await ensureAudioContext();
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+        analyser = ac.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.82;
+        micSource = ac.createMediaStreamSource(micStream);
+        micSource.connect(analyser);
+        els.startBtn.disabled = true;
+        els.stopBtn.disabled = false;
+        setStatus('live', '偵測中');
+        showMsg('info', '已開始偵測。請保持此頁面開啟，手機不要鎖屏。', 3000);
+        analyze();
+      } catch (error) {
+        setStatus('warn', '未能啟動');
+        showMsg('err', '無法存取咪高峰：' + error.message, 5000);
+      }
+    }
+
+    function stopDetect() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+      if (micSource) micSource.disconnect();
+      micSource = null;
+      if (micStream) micStream.getTracks().forEach(track => track.stop());
+      micStream = null;
+      if (audioCtx && audioCtx.state !== 'closed') {
+        audioCtx.close();
+        audioCtx = null;
+      }
+      els.startBtn.disabled = false;
+      els.stopBtn.disabled = true;
+      els.curDb.textContent = '—';
+      els.peakFreq.textContent = '—';
+      setStatus('', '已停止');
+      resizeCanvas();
+      ctx.clearRect(0, 0, els.canvas.getBoundingClientRect().width, els.canvas.getBoundingClientRect().height);
+      showMsg('info', '已停止偵測。', 1800);
+    }
+
+    async function toggleWakeLock() {
+      if (!('wakeLock' in navigator)) {
+        showMsg('warn', '此瀏覽器不支援 Wake Lock。請手動調整手機螢幕不要太快關閉。', 4000);
+        return;
+      }
+      try {
+        if (wakeLock) {
+          await wakeLock.release();
+          wakeLock = null;
+          els.wakeLockBtn.textContent = '保持螢幕喚醒';
+          showMsg('info', '已取消保持螢幕喚醒。', 2200);
+        } else {
+          wakeLock = await navigator.wakeLock.request('screen');
+          els.wakeLockBtn.textContent = '取消螢幕喚醒';
+          wakeLock.addEventListener('release', () => {
+            wakeLock = null;
+            els.wakeLockBtn.textContent = '保持螢幕喚醒';
+          });
+          showMsg('info', '已嘗試保持螢幕喚醒。', 2200);
+        }
+      } catch (error) {
+        showMsg('err', 'Wake Lock 啟動失敗：' + error.message, 3000);
+      }
+    }
+
+    window.addEventListener('beforeinstallprompt', event => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      els.installBox.classList.add('show');
+    });
+
+    els.installBtn.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      els.installBox.classList.remove('show');
+    });
+
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible' && wakeLock === null && !els.stopBtn.disabled) {
+        // Do not force wake lock; browser may reject repeated requests. User can press the button again.
+        showMsg('warn', '頁面曾經切換或鎖屏，請確認偵測仍然正常。', 3000);
+      }
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 300));
+    els.startBtn.addEventListener('click', startDetect);
+    els.stopBtn.addEventListener('click', stopDetect);
+    els.testSoundBtn.addEventListener('click', playBeep);
+    els.wakeLockBtn.addEventListener('click', toggleWakeLock);
+
+    resizeCanvas();
+
+    if (!window.isSecureContext) {
+      showMsg('warn', '提示：手機瀏覽器通常需要 HTTPS 才可使用咪高峰權限。', 0);
+    }
+  </script>
+</body>
+</html>
